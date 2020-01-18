@@ -76,6 +76,7 @@ class Line {
 }
 
 let islineregex = new RegExp(/^\s*(\S+)\s+is\s+(\S.*)$/);
+let blockislineregex = new RegExp(/^\s*(\S+)\s+((\S+\s+)*)is$/);
 
 class Env {
   constructor() {
@@ -95,25 +96,26 @@ class Env {
   }
 }
 
-// class FunctionValue {
-//   constructor(boundargs, args, lines) {
-//     this.boundargs = boundargs;
-//     this.args = args;
-//     this.lines = lines;
-//   }
+class FunctionValue {
+  constructor(boundargs, args, lines) {
+    this.boundargs = boundargs;
+    this.args = args;
+    this.lines = lines;
+  }
 
-//   moveright(word, blockenv, globalenv) {
-//     if (this.args.length === 0) {
-//       value = this.movedownlines();
-//       return value.moveright(word, blockenv, globalenv);
-//     } else {
-//       arg = this.args[0];
-//       newboundargs = Object.assign({}, this.boundargs);
-//       newboundargs[arg] = wordtovalue(word, blockenv, globalenv);
-//       return new FunctionValue(newboundargs, this.args.slice(1), lines);
-//     }
-//   }
-// }
+  moveright(word, blockenv, globalenv) {
+    // you need to handle 1 last arg to be bound
+    if (this.args.length === 0) {
+      value = this.movedownlines();
+      return value.moveright(word, blockenv, globalenv);
+    } else {
+      let arg = this.args[0];
+      let newboundargs = Object.assign({}, this.boundargs);
+      newboundargs[arg] = wordtovalue(word, blockenv, globalenv);
+      return new FunctionValue(newboundargs, this.args.slice(1), this.lines);
+    }
+  }
+}
 
 // Get the input box
 let input = document.getElementById('text');
@@ -149,25 +151,35 @@ input.addEventListener('keyup', function (e) {
           .length;
 
         let blockenv = new Env();
-        for (let line of lines) {
-          if (islineregex.test(line)) {
-            let match = islineregex.exec(line);
-            let name = match[1];
-            let restofline = match[2];
-            if (islineregex.test(restofline)) {
-              // not sure whether this is an error or something we can skip
-              // skip for now
-              continue;
+        if (blockislineregex.test(lines[0])) {
+          let match = blockislineregex.exec(lines[0]);
+          let name = match[1];
+          let args = match[2]
+            .trim()
+            .split(new RegExp('\\s+'))
+            .filter(word => word !== '');
+          globalenv.setvalue(name, new FunctionValue([], args, lines.slice(1)));
+        } else {
+          for (let line of lines) {
+            if (islineregex.test(line)) {
+              let match = islineregex.exec(line);
+              let name = match[1];
+              let restofline = match[2];
+              if (islineregex.test(restofline)) {
+                // not sure whether this is an error or something we can skip
+                // skip for now
+                continue;
+              } else {
+                let words = restofline
+                  .split(new RegExp('\\s+'));
+                (new IsLine(name, words)).movedown(blockenv, globalenv);
+              }
             } else {
-              let words = restofline
+              let words = line
                 .split(new RegExp('\\s+'));
-              (new IsLine(name, words)).movedown(blockenv, globalenv);
+              let value = (new Line(words)).movedown(blockenv, globalenv);
+              console.log(`value ${JSON.stringify(value)}`)
             }
-          } else {
-            let words = line
-              .split(new RegExp('\\s+'));
-            let value = (new Line(words)).movedown(blockenv, globalenv);
-            console.log(`value ${JSON.stringify(value)}`)
           }
         }
         blockenvs.push(blockenv);
