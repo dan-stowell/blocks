@@ -185,5 +185,5 @@ input.addEventListener('keyup', function (e) {
         blockenvs.push(blockenv);
       }
       output.textContent = `${numblocks} blocks, ${numislines} islines`;
-    }, 1000);
+    }, 500);
 });
