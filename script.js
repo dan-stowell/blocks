@@ -1,121 +1,5 @@
-class NumberValue {
-  constructor(number) {
-    this.number = number;
-  }
-
-  moveright(word, blockenv, globalenv) {
-    if (word === 'plus') {
-      return new PlusValue(this.number);
-    } else {
-      return wordtovalue(word, blockenv, globalenv);
-    }
-  }
-}
-
-class PlusValue {
-  constructor(leftnumber) {
-    this.leftnumber = leftnumber;;
-  }
-
-  moveright(word, blockenv, globalenv) {
-    let rightnumber = wordtovalue(word, blockenv, globalenv);
-    let sum = this.leftnumber + rightnumber.number;
-    return new NumberValue(this.leftnumber + rightnumber.number);
-  }
-}
-
-function wordtovalue(word, blockenv, globalenv) {
-  if (blockenv.has(word)) {
-    return blockenv.lookup(word);
-  } else if (globalenv.has(word)) {
-    return globalenv.lookup(word);
-  } else if (!Number.isNaN(Number.parseInt(word))) {
-    return new NumberValue(Number.parseInt(word));
-  } else if (!Number.isNaN(Number.parseFloat(word))) {
-    return new NumberValue(Number.parseFloat(word));
-  } else {
-    // probably should return useful ErrorValue
-    return new EmptyValue();
-  }
-}
-
-class EmptyValue {
-  moveright(word, blockenv, globalenv) {
-    return wordtovalue(word, blockenv, globalenv);
-  }
-}
-
-class IsLine {
-  constructor(name, words) {
-    this.name = name;
-    this.words = words;
-  }
-
-  movedown(blockenv, globalenv) {
-    let value = new EmptyValue();
-    for (let word of this.words) {
-      value = value.moveright(word, blockenv, globalenv)
-    }
-    blockenv.setvalue(this.name, value);
-    return value;
-  }
-}
-
-class Line {
-  constructor(words) {
-    this.words = words;
-  }
-
-  movedown(blockenv, globalenv) {
-    let value = new EmptyValue();
-    for (let word of this.words) {
-      value = value.moveright(word, blockenv, globalenv);
-    }
-    return value;
-  }
-}
-
 let islineregex = new RegExp(/^\s*(\S+)\s+is\s+(\S.*)$/);
 let blockislineregex = new RegExp(/^\s*(\S+)\s+((\S+\s+)*)is$/);
-
-class Env {
-  constructor() {
-    this.mapping = {};
-  }
-
-  has(word) {
-    return (word in this.mapping);
-  }
-
-  lookup(word) {
-    return this.mapping[word];
-  }
-
-  setvalue(word, value) {
-    this.mapping[word] = value;
-  }
-}
-
-class FunctionValue {
-  constructor(boundargs, args, lines) {
-    this.boundargs = boundargs;
-    this.args = args;
-    this.lines = lines;
-  }
-
-  moveright(word, blockenv, globalenv) {
-    // you need to handle 1 last arg to be bound
-    if (this.args.length === 0) {
-      value = this.movedownlines();
-      return value.moveright(word, blockenv, globalenv);
-    } else {
-      let arg = this.args[0];
-      let newboundargs = Object.assign({}, this.boundargs);
-      newboundargs[arg] = wordtovalue(word, blockenv, globalenv);
-      return new FunctionValue(newboundargs, this.args.slice(1), this.lines);
-    }
-  }
-}
 
 // Get the input box
 let input = document.getElementById('text');
@@ -142,48 +26,17 @@ input.addEventListener('keyup', function (e) {
         .length;
 
       let numislines = 0;
-      let blockenvs = [];
-      let globalenv = new Env();
+      let numblockislines = 0;
       for (let block of blocks) {
         let lines = block.split('\n');
         numislines += lines
           .filter(line => islineregex.test(line))
           .length;
 
-        let blockenv = new Env();
-        if (blockislineregex.test(lines[0])) {
-          let match = blockislineregex.exec(lines[0]);
-          let name = match[1];
-          let args = match[2]
-            .trim()
-            .split(new RegExp('\\s+'))
-            .filter(word => word !== '');
-          globalenv.setvalue(name, new FunctionValue([], args, lines.slice(1)));
-        } else {
-          for (let line of lines) {
-            if (islineregex.test(line)) {
-              let match = islineregex.exec(line);
-              let name = match[1];
-              let restofline = match[2];
-              if (islineregex.test(restofline)) {
-                // not sure whether this is an error or something we can skip
-                // skip for now
-                continue;
-              } else {
-                let words = restofline
-                  .split(new RegExp('\\s+'));
-                (new IsLine(name, words)).movedown(blockenv, globalenv);
-              }
-            } else {
-              let words = line
-                .split(new RegExp('\\s+'));
-              let value = (new Line(words)).movedown(blockenv, globalenv);
-              console.log(`value ${JSON.stringify(value)}`)
-            }
-          }
-        }
-        blockenvs.push(blockenv);
+        numblockislines += lines
+          .filter(line => blockislineregex.test(line))
+          .length;
       }
-      output.textContent = `${numblocks} blocks, ${numislines} islines`;
+      output.textContent = `${numblocks} blocks, ${numislines} islines, ${numblockislines} blockislines`;
     }, 500);
 });
