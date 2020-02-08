@@ -184,6 +184,6 @@ input.addEventListener('keyup', function (e) {
         }
         blockenvs.push(blockenv);
       }
-      output.textContent = `${JSON.stringify(blockenvs)} // ${numblocks} blocks, ${numislines} islines`;
+      output.textContent = `${numblocks} blocks, ${numislines} islines`;
     }, 1000);
 });
