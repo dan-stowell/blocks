@@ -12,8 +12,14 @@ let versions = [];
 let version2blocks = {};
 let version2blockparsedlines = {};
 
+let parseblocksworker = new Worker('parseblocks.js');
+parseblocksworker.onmessage = function(e) {
+  console.log(`main received message: ${e.data}`);
+};
+
 function parseblocks() {
   let version = md5(input.value)
+  parseblocksworker.postMessage(version);
 
   let blocks = input
     .value
