@@ -5,7 +5,6 @@ let output = document.getElementById('output');
 let parseblocksworker = new Worker('parseblocks.js');
 parseblocksworker.onmessage = function(e) {
   let data = e.data;
-  let keys = Object.keys(data);
   let version = data['version'];
   let parsedlines = data['parsedlines'];
   let summary = `${parsedlines.length} parsed lines, version ${version}`;
