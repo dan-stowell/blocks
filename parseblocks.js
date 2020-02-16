@@ -1,7 +1,8 @@
 importScripts('md5.min.js');
 
-let islineregex = new RegExp(/^\s*(\S+)\s+((\S+\s+)*)is\s+(.*)$/);
-let blockislineregex = new RegExp(/^\s*(\S+)\s+((\S+\s+)*)is$/);
+let islineregex = new RegExp(/^\s*(\S+)\s+((?:\S+\s+)*)is\s+(\S.*)$/);
+let blockislineregex = new RegExp(/^\s*(\S+)\s+((?:\S+\s+)*)is$/);
+let whitespaceregex = new RegExp('\\s+');
 
 function parseblocks(inputtext) {
   let version = md5(inputtext);
@@ -9,12 +10,17 @@ function parseblocks(inputtext) {
   let blocks = inputtext
     .split(new RegExp('\\n{2,}'));
 
+  let blockdefs = [];
+  let linedefs = [];
+  let words = [];
+
   let parsedlines = [];
 
   blocks.forEach((block, whichblock) => {
     let lines = block.split('\n');
 
-    lines.forEach((line, whichline) => {
+    lines.forEach((untrimmedline, whichline) => {
+      let line = untrimmedline.trim();
       if (islineregex.test(line)) {
         let match = islineregex.exec(line);
         let name = match[1];
@@ -22,14 +28,24 @@ function parseblocks(inputtext) {
           .trim()
           .split(new RegExp('\\s+'))
           .filter(word => word !== '');
-        let restofline = match[3];
-        parsedlines.push({
+        linedefs.push({
           'name': name,
           'args': args,
-          'lines': [restofline],
           'whichblock': whichblock,
           'whichline': whichline
         });
+
+        let restofline = match[3];
+        restofline
+          .split(whitespaceregex)
+          .forEach((word, whichword) => {
+            words.push({
+              'word': word,
+              'whichblock': whichblock,
+              'whichline': whichline,
+              'whichword': whichword
+            });
+          });
 
       } else if (blockislineregex.test(line)) {
         let match = blockislineregex.exec(line);
@@ -38,29 +54,36 @@ function parseblocks(inputtext) {
           .trim()
           .split(new RegExp('\\s+'))
           .filter(word => word !== '');
-        let restoflines = lines.slice(whichline + 1);
-        parsedlines.push({
+        blockdefs.push({
           'name': name,
           'args': args,
-          'lines': restoflines,
           'whichblock': whichblock,
           'whichline': whichline
         });
 
       } else {
-        parsedlines.push({
-          'name': '',
-          'args': [],
-          'lines': [line],
-          'whichblock': whichblock,
-          'whichline': whichline
-        });
+        line
+          .split(whitespaceregex)
+          .forEach((word, whichword) => {
+            words.push({
+              'word': word,
+              'whichblock': whichblock,
+              'whichline': whichline,
+              'whichword': whichword
+            });
+          });
 
       }
     });
 
   });
-  return {'version': version, 'parsedlines': parsedlines};
+
+  return {
+    'version': version,
+    'blockdefs': blockdefs,
+    'linedefs': linedefs,
+    'words': words
+  };
 }
 
 onmessage = function(e) {
