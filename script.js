@@ -4,15 +4,15 @@ let output = document.getElementById('output');
 
 let parseblocksworker = new Worker('parseblocks.js');
 parseblocksworker.onmessage = function(e) {
-  let parsed = e.data;
-  let version = parsed['version'];
-  let parsedlines = parsed['parsedlines'];
+  let data = e.data;
+  let keys = Object.keys(data);
+  let version = data['version'];
+  let parsedlines = data['parsedlines'];
   let summary = `${parsedlines.length} parsed lines, version ${version}`;
   output.textContent = summary;
 };
 
 function postparseblocks() {
-  console.log('postparseblocks');
   parseblocksworker.postMessage(input.value);
 }
 

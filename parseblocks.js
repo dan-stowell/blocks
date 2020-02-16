@@ -60,7 +60,7 @@ function parseblocks(inputtext) {
     });
 
   });
-  postMessage({'version': version, 'parsedlines': parsedlines});
+  return {'version': version, 'parsedlines': parsedlines};
 }
 
 onmessage = function(e) {
